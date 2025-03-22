@@ -5,20 +5,33 @@ M.options = {
   keys = {
     run_spec = "<Leader>rs",
     run_all_specs = "<Leader>rss",
+    toggle_terminal = "<Leader>st",
   }
 }
 
 local state = {
   line_number = nil,
+  view = {
+    buf = -1,
+    win = -1,
+  }
 }
 
-local function create_floating_window()
+local function prepare_floating_window()
   local width = math.floor(vim.o.columns * 0.8)
   local height = math.floor(vim.o.lines * 0.8)
   local col = math.floor((vim.o.columns - width) / 2)
   local row = math.floor((vim.o.lines - height) / 2)
-  local buf = vim.api.nvim_create_buf(false, true)
-  local win = vim.api.nvim_open_win(buf, true, {
+  local buf = nil
+
+  if vim.api.nvim_buf_is_valid(state.view.buf) then
+    buf = state.view.buf
+  else
+    buf = vim.api.nvim_create_buf(false, true)
+    state.view.buf = buf
+  end
+
+  win = vim.api.nvim_open_win(buf, true, {
     relative = "editor",
     width = width,
     height = height,
@@ -28,19 +41,34 @@ local function create_floating_window()
     border = "rounded",
   })
 
-  vim.cmd.terminal()
+  if vim.bo[buf].buftype ~= "terminal" then
+    vim.cmd.terminal()
+  end
 
-  return { buf = buf, win = win }
+  state.view.buf = buf
+  state.view.win = win
+  return { buf = buf, win = win}
 end
 
-local function create_vsplit_window()
-  local buf = vim.api.nvim_create_buf(false, true)
+local function prepare_vsplit_window()
+  local buf = nil
+  local win = nil
 
-  vim.cmd("vsplit")
-  vim.api.nvim_win_set_buf(0, buf)
-  vim.cmd.terminal()
+  if vim.api.nvim_buf_is_valid(state.view.buf) then
+    vim.cmd("vsplit")
+    vim.api.nvim_win_set_buf(0, state.view.buf)
+  else
+    buf = vim.api.nvim_create_buf(false, true)
+    state.view.buf = buf
 
-  return { buf = buf, win = vim.api.nvim_get_current_win() }
+    vim.cmd("vsplit")
+    vim.api.nvim_win_set_buf(0, buf)
+    vim.cmd.terminal()
+  end
+
+  win = vim.api.nvim_get_current_win()
+  state.view.win = win
+  return { buf = buf, win = win }
 end
 
 local cursor_row_location = function()
@@ -63,11 +91,11 @@ local create_command = function()
   return "i bundle exec rspec " .. file_path .. (state.line_number and (":" .. state.line_number) or "") .. "\n"
 end
 
-local create_view = function()
+local prepare_view = function()
   if M.options.win_type == "floating-window" then
-    return create_floating_window()
+    return prepare_floating_window()
   elseif M.options.win_type == "vsplit" then
-    return create_vsplit_window()
+    return prepare_vsplit_window()
   else
     vim.notify("win_type unknown", vim.log.levels.WARN)
     return nil
@@ -79,7 +107,7 @@ local run_rspec = function()
   state.line_number = nil
 
   if cmd then
-    local view = create_view()
+    local view = prepare_view()
 
     if view then
       vim.api.nvim_set_current_win(view.win)
@@ -90,10 +118,24 @@ local run_rspec = function()
   end
 end
 
+local toggle_terminal = function()
+  if not vim.api.nvim_win_is_valid(state.view.win) then
+    prepare_view()
+  else
+    if M.options.win_type == "vsplit" then
+      vim.cmd("hide")
+    else
+      vim.api.nvim_win_hide(state.view.win)
+    end
+  end
+end
+
 local set_keymaps = function()
   pcall(vim.keymap.del, "n", "<Leader>rss")
   pcall(vim.keymap.del, "n", "<Leader>rs")
+  pcall(vim.keymap.del, "n", "<Leader>rt")
 
+  vim.keymap.set("n", M.options.keys.toggle_terminal, toggle_terminal)
   vim.keymap.set("n", M.options.keys.run_spec, function()
     state.line_number = cursor_row_location()
     run_rspec()
@@ -109,6 +151,7 @@ M.setup = function(opts)
   set_keymaps()
 end
 
+vim.api.nvim_create_user_command("Railsgunterminal", toggle_terminal, {})
 vim.api.nvim_create_user_command("Railsgun", function(opts)
   if tonumber(opts.args) then
     state.line_number = opts.args
