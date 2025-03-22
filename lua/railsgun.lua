@@ -51,24 +51,22 @@ local function prepare_floating_window()
 end
 
 local function prepare_vsplit_window()
-  local buf = nil
-  local win = nil
 
   if vim.api.nvim_buf_is_valid(state.view.buf) then
     vim.cmd("vsplit")
     vim.api.nvim_win_set_buf(0, state.view.buf)
   else
-    buf = vim.api.nvim_create_buf(false, true)
-    state.view.buf = buf
+    state.view.buf = vim.api.nvim_create_buf(false, true)
 
     vim.cmd("vsplit")
-    vim.api.nvim_win_set_buf(0, buf)
+    vim.api.nvim_win_set_buf(0, state.view.buf)
     vim.cmd.terminal()
   end
 
-  win = vim.api.nvim_get_current_win()
+  local win = vim.api.nvim_get_current_win()
   state.view.win = win
-  return { buf = buf, win = win }
+
+  return { buf = state.view.buf, win = win }
 end
 
 local cursor_row_location = function()
@@ -133,7 +131,7 @@ end
 local set_keymaps = function()
   pcall(vim.keymap.del, "n", "<Leader>rss")
   pcall(vim.keymap.del, "n", "<Leader>rs")
-  pcall(vim.keymap.del, "n", "<Leader>rt")
+  pcall(vim.keymap.del, "n", "<Leader>st")
 
   vim.keymap.set("n", M.options.keys.toggle_terminal, toggle_terminal)
   vim.keymap.set("n", M.options.keys.run_spec, function()
