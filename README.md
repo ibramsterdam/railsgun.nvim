@@ -30,6 +30,7 @@ Railsgun allows you to configure options to customize behavior
     keys = {
       run_spec = "<Leader>rs",  -- Run test at cursor
       run_all_specs = "<Leader>rss",  -- Run entire spec file
+      toggle_terminal = "<Leader>st", -- Toggle terminal
     }
   }
 }
@@ -40,6 +41,7 @@ Railsgun allows you to configure options to customize behavior
 ### Keybindings (Default)
 - **`<Leader>rs`** → Run RSpec test at the current line
 - **`<Leader>rss`** → Run the entire spec file
+- **`<Leader>st`** → Ability to toggle the terminal that is specified by the win_type
 
 ### Running Tests via Command
 You can also run tests with the `:Railsgun` command:
@@ -47,6 +49,8 @@ You can also run tests with the `:Railsgun` command:
 :Railsgun 15   " Runs test at line 15
 :Railsgun      " Runs the whole file
 ```
+
+You can also toggle the terminal with `:Railsgunterminal`
 
 ## 📌 Contributing
 Feel free to **open issues or pull requests** if you have improvements, bug fixes, or feature ideas!
