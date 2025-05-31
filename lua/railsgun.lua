@@ -81,12 +81,16 @@ local create_command = function()
     return nil
   end
 
-  if not file_path:match("_spec%.rb$") then
-    vim.notify("Not an RSpec file", vim.log.levels.WARN)
+  if file_path:match("_spec%.rb$") then
+    -- RSpec file
+    return "i bundle exec rspec " .. file_path .. (state.line_number and (":" .. state.line_number) or "") .. "\n"
+  elseif file_path:match("_test%.rb$") then
+    -- Minitest file
+    return "i rails test " .. file_path .. (state.line_number and (":" .. state.line_number) or "") .. "\n"
+  else
+    vim.notify("Not a recognized test file (must be *_spec.rb or *_test.rb)", vim.log.levels.WARN)
     return nil
   end
-
-  return "i bundle exec rspec " .. file_path .. (state.line_number and (":" .. state.line_number) or "") .. "\n"
 end
 
 local prepare_view = function()

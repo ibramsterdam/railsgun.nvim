@@ -1,9 +1,9 @@
 # Railsgun.nvim
 
-Railsgun.nvim is a lightweight Neovim plugin designed to quickly run **RSpec tests** in your Rails projects. Run individual tests or entire spec files instantly—without ever leaving Neovim.
+Railsgun.nvim is a lightweight Neovim plugin designed to quickly run **RSpec tests** or **MiniTest** in your Rails projects. Run individual tests or entire spec files instantly—without ever leaving Neovim.
 
 ## ✨ Features
-- **Run RSpec tests inline or the whole file** with a single keybinding
+- **Run RSpec or MiniTest tests inline or the whole file** with a single keybinding
 - Configurable key mappings and settings
 
 ![Preview](https://imgur.com/i5EIglU.gif)
