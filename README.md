@@ -32,6 +32,7 @@ Railsgun allows you to configure options to customize behavior
       run_spec = "<Leader>rs",  -- Run test at cursor
       run_all_specs = "<Leader>rss",  -- Run entire spec file
       toggle_terminal = "<Leader>st", -- Toggle terminal
+      toggle_claude = "<Leader>sc", -- Toggle a Claude Code terminal
       toggle_spec = "<Leader>tt", -- Jump between test and implementation
     }
   }
@@ -44,6 +45,7 @@ Railsgun allows you to configure options to customize behavior
 - **`<Leader>rs`** → Run RSpec test at the current line
 - **`<Leader>rss`** → Run the entire spec file
 - **`<Leader>st`** → Ability to toggle the terminal that is specified by the win_type
+- **`<Leader>sc`** → Toggle a [Claude Code](https://claude.com/claude-code) terminal in your project root — the session keeps running while the window is hidden
 - **`<Leader>tt`** → Jump between a file and its spec/test counterpart (`app/models/user.rb` ↔ `spec/models/user_spec.rb` or `test/models/user_test.rb`, `lib/` included), restoring the cursor position you left in each file
 
 ### Running Tests via Command
@@ -53,7 +55,7 @@ You can also run tests with the `:Railsgun` command:
 :Railsgun      " Runs the whole file
 ```
 
-You can also toggle the terminal with `:Railsgunterminal`, and jump between test and implementation with `:Railsgunalternate`
+You can also toggle the terminal with `:Railsgunterminal`, the Claude terminal with `:Railsgunclaude`, and jump between test and implementation with `:Railsgunalternate`
 
 ## 📌 Contributing
 Feel free to **open issues or pull requests** if you have improvements, bug fixes, or feature ideas!

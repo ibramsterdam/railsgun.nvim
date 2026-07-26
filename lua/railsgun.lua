@@ -6,22 +6,23 @@ M.options = {
     run_spec = "<Leader>rs",
     run_all_specs = "<Leader>rss",
     toggle_terminal = "<Leader>st",
+    toggle_claude = "<Leader>sc",
     toggle_spec = "<Leader>tt",
   },
 }
 
 local state = {
-  view = {
-    buf = -1,
-    win = -1,
+  views = {
+    terminal = { buf = -1, win = -1 },
+    claude = { buf = -1, win = -1 },
   },
 }
 
-local function view_buf()
-  if not vim.api.nvim_buf_is_valid(state.view.buf) then
-    state.view.buf = vim.api.nvim_create_buf(false, true)
+local function view_buf(view)
+  if not vim.api.nvim_buf_is_valid(view.buf) then
+    view.buf = vim.api.nvim_create_buf(false, true)
   end
-  return state.view.buf
+  return view.buf
 end
 
 local function open_floating_window(buf)
@@ -46,30 +47,54 @@ local function open_vsplit_window(buf)
   return win
 end
 
-local function prepare_view()
-  if vim.api.nvim_win_is_valid(state.view.win) then
-    vim.api.nvim_set_current_win(state.view.win)
-    return state.view
+local function prepare_view(name, cmd, cwd)
+  local view = state.views[name]
+
+  if vim.api.nvim_win_is_valid(view.win) then
+    vim.api.nvim_set_current_win(view.win)
+    return view
   end
 
-  local buf = view_buf()
+  local buf = view_buf(view)
 
   if M.options.win_type == "floating-window" then
-    state.view.win = open_floating_window(buf)
+    view.win = open_floating_window(buf)
   elseif M.options.win_type == "vsplit" then
-    state.view.win = open_vsplit_window(buf)
+    view.win = open_vsplit_window(buf)
   else
     vim.notify("railsgun: unknown win_type: " .. tostring(M.options.win_type), vim.log.levels.WARN)
     return nil
   end
 
-  -- :terminal converts the current (scratch) buffer in place, so the
+  -- the terminal converts the current (scratch) buffer in place, so the
   -- session survives toggling the window
   if vim.bo[buf].buftype ~= "terminal" then
-    vim.cmd.terminal()
+    if cmd then
+      local opts = {
+        cwd = cwd,
+        -- drop the buffer once the command exits so the next toggle
+        -- starts a fresh session
+        on_exit = function()
+          if vim.api.nvim_win_is_valid(view.win) then
+            vim.api.nvim_win_hide(view.win)
+          end
+          vim.schedule(function()
+            pcall(vim.api.nvim_buf_delete, buf, { force = true })
+          end)
+        end,
+      }
+      if vim.fn.has("nvim-0.11") == 1 then
+        opts.term = true
+        vim.fn.jobstart(cmd, opts)
+      else
+        vim.fn.termopen(cmd, opts)
+      end
+    else
+      vim.cmd.terminal()
+    end
   end
 
-  return state.view
+  return view
 end
 
 local function build_test_command(line_number)
@@ -99,7 +124,7 @@ local function run_test(line_number)
     return
   end
 
-  local view = prepare_view()
+  local view = prepare_view("terminal")
   if not view then
     return
   end
@@ -173,10 +198,23 @@ local function toggle_spec()
 end
 
 local function toggle_terminal()
-  if vim.api.nvim_win_is_valid(state.view.win) then
-    vim.api.nvim_win_hide(state.view.win)
+  if vim.api.nvim_win_is_valid(state.views.terminal.win) then
+    vim.api.nvim_win_hide(state.views.terminal.win)
   else
-    prepare_view()
+    prepare_view("terminal")
+  end
+end
+
+local function toggle_claude()
+  if vim.api.nvim_win_is_valid(state.views.claude.win) then
+    vim.api.nvim_win_hide(state.views.claude.win)
+    return
+  end
+
+  -- resolve the project root before switching to the terminal buffer
+  local root = vim.fs.root(0, { "Gemfile", ".git" }) or vim.fn.getcwd()
+  if prepare_view("claude", { "claude" }, root) then
+    vim.cmd.startinsert()
   end
 end
 
@@ -189,6 +227,7 @@ local function set_keymaps()
 
   local keys = M.options.keys
   vim.keymap.set("n", keys.toggle_terminal, toggle_terminal, { desc = "Railsgun: toggle terminal" })
+  vim.keymap.set("n", keys.toggle_claude, toggle_claude, { desc = "Railsgun: toggle Claude terminal" })
   vim.keymap.set("n", keys.run_spec, function()
     run_test(vim.api.nvim_win_get_cursor(0)[1])
   end, { desc = "Railsgun: run test under cursor" })
@@ -197,7 +236,7 @@ local function set_keymaps()
   end, { desc = "Railsgun: run test file" })
   vim.keymap.set("n", keys.toggle_spec, toggle_spec, { desc = "Railsgun: toggle between test and implementation" })
 
-  active_keys = { keys.toggle_terminal, keys.run_spec, keys.run_all_specs, keys.toggle_spec }
+  active_keys = { keys.toggle_terminal, keys.toggle_claude, keys.run_spec, keys.run_all_specs, keys.toggle_spec }
 end
 
 M.setup = function(opts)
@@ -206,6 +245,7 @@ M.setup = function(opts)
 end
 
 vim.api.nvim_create_user_command("Railsgunterminal", toggle_terminal, {})
+vim.api.nvim_create_user_command("Railsgunclaude", toggle_claude, {})
 vim.api.nvim_create_user_command("Railsgunalternate", toggle_spec, {})
 vim.api.nvim_create_user_command("Railsgun", function(opts)
   run_test(tonumber(opts.args))
