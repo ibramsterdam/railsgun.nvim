@@ -46,6 +46,8 @@ Railsgun allows you to configure options to customize behavior
 - **`<Leader>rss`** → Run the entire spec file
 - **`<Leader>st`** → Ability to toggle the terminal that is specified by the win_type
 - **`<Leader>sc`** → Toggle a [Claude Code](https://claude.com/claude-code) terminal in your project root — the session keeps running while the window is hidden
+
+The two floating panes act like a switch: opening one while the other is visible swaps them, so `<Leader>st`/`<Leader>sc` always bring up the pane you asked for. Both panes open in normal mode at the live end of the session, and the Claude pane runs with `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1`, so the whole conversation stays in the terminal buffer as scrollback — scroll it with the usual vim motions and press `i` when you want to type (to Claude or the shell). Mouse clicks and selections in the pane stay plain Neovim behavior instead of being captured by Claude's fullscreen UI. Note: while a pane is in terminal-insert mode, keys go to the program — leave it with `<C-\><C-n>` (or your own mapping) before using the toggles.
 - **`<Leader>tt`** → Jump between a file and its spec/test counterpart (`app/models/user.rb` ↔ `spec/models/user_spec.rb` or `test/models/user_test.rb`, `lib/` included), restoring the cursor position you left in each file
 
 ### Running Tests via Command

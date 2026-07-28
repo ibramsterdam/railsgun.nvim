@@ -47,12 +47,23 @@ local function open_vsplit_window(buf)
   return win
 end
 
-local function prepare_view(name, cmd, cwd)
+local sibling_of = { terminal = "claude", claude = "terminal" }
+
+local function prepare_view(name, cmd, job_opts)
   local view = state.views[name]
 
   if vim.api.nvim_win_is_valid(view.win) then
     vim.api.nvim_set_current_win(view.win)
     return view
+  end
+
+  -- floating panes fully overlap, so showing both at once just stacks
+  -- them; hide the other pane and behave like a switch instead
+  if M.options.win_type == "floating-window" then
+    local sibling = state.views[sibling_of[name]]
+    if vim.api.nvim_win_is_valid(sibling.win) then
+      vim.api.nvim_win_hide(sibling.win)
+    end
   end
 
   local buf = view_buf(view)
@@ -71,7 +82,8 @@ local function prepare_view(name, cmd, cwd)
   if vim.bo[buf].buftype ~= "terminal" then
     if cmd then
       local opts = {
-        cwd = cwd,
+        cwd = job_opts and job_opts.cwd,
+        env = job_opts and job_opts.env,
         -- drop the buffer once the command exits so the next toggle
         -- starts a fresh session
         on_exit = function()
@@ -93,6 +105,9 @@ local function prepare_view(name, cmd, cwd)
       vim.cmd.terminal()
     end
   end
+
+  -- open at the live end of the session; scroll up from there as needed
+  vim.api.nvim_win_set_cursor(view.win, { vim.api.nvim_buf_line_count(buf), 0 })
 
   return view
 end
@@ -213,9 +228,13 @@ local function toggle_claude()
 
   -- resolve the project root before switching to the terminal buffer
   local root = vim.fs.root(0, { "Gemfile", ".git" }) or vim.fn.getcwd()
-  if prepare_view("claude", { "claude" }, root) then
-    vim.cmd.startinsert()
-  end
+  prepare_view("claude", { "claude" }, {
+    cwd = root,
+    -- Claude Code >= 2.1.89 renders on the terminal's alternate screen,
+    -- which leaves no scrollback in the terminal buffer; the classic
+    -- renderer keeps the pane scrollable like a regular terminal
+    env = { CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN = "1" },
+  })
 end
 
 local active_keys = {}
